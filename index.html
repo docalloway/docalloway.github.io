@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zazen Meditation Timer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom CSS for the sunset gradient background and Inter font */
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+            /* Sunset Gradient - Example colors, feel free to adjust */
+            background: linear-gradient(to top right, #ff7e5f, #feb47b, #ffda7b);
+            background-size: 400% 400%;
+            animation: gradientAnimation 15s ease infinite;
+        }
+
+        @keyframes gradientAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Modal specific styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: rgba(255, 255, 255, 0.95);
+            color: #333;
+            padding: 2.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            max-width: 90%;
+            width: 400px;
+            text-align: center;
+            position: relative;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.show .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-close-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .modal-close-button:hover {
+            color: #333;
+        }
+
+        /* Loading spinner */
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-tr from-pink-500 via-orange-500 to-yellow-500 min-h-screen flex items-center justify-center text-white font-inter">
+
+    <div class="relative bg-black bg-opacity-30 p-8 md:p-12 rounded-2xl shadow-xl text-center w-11/12 max-w-md">
+        <button id="gemini-hint-button"
+                class="absolute top-4 right-4 bg-white bg-opacity-20 hover:bg-opacity-40 text-white font-bold rounded-full w-10 h-10 flex items-center justify-center text-xl shadow-md transition-colors duration-300"
+                title="Get Zazen & Mindfulness Hints">
+            ✨
+        </button>
+
+        <h1 class="text-3xl md:text-4xl font-bold mb-8 tracking-wide">Zazen Timer</h1>
+
+        <div class="mb-6">
+            <label for="meditation-length" class="block text-lg mb-2">Meditation Length (minutes):</label>
+            <input type="number" id="meditation-length" value="25" min="1"
+                   class="w-24 p-3 rounded-lg text-center text-gray-800 text-2xl font-semibold bg-white bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200">
+        </div>
+
+        <div class="flex flex-wrap justify-center gap-2 mb-6">
+            <button class="preset-button bg-gray-700 hover:bg-gray-600 text-white text-sm py-2 px-4 rounded-lg transition-colors duration-200" data-minutes="10">10 min</button>
+            <button class="preset-button bg-gray-700 hover:bg-gray-600 text-white text-sm py-2 px-4 rounded-lg transition-colors duration-200" data-minutes="20">20 min</button>
+            <button class="preset-button bg-gray-700 hover:bg-gray-600 text-white text-sm py-2 px-4 rounded-lg transition-colors duration-200" data-minutes="30">30 min</button>
+            <button class="preset-button bg-gray-700 hover:bg-gray-600 text-white text-sm py-2 px-4 rounded-lg transition-colors duration-200" data-minutes="60">60 min</button>
+        </div>
+
+        <div class="text-6xl md:text-7xl font-extrabold mb-8 text-shadow-lg">
+            <span id="minutes">00</span>:<span id="seconds">00</span>
+        </div>
+
+        <div class="flex flex-col md:flex-row justify-center items-center space-y-4 md:space-y-0 md:space-x-4 mb-6">
+            <button id="start-pause-button"
+                    class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg text-lg shadow-md transition-colors duration-300 disabled:bg-gray-500 disabled:cursor-not-allowed w-full md:w-auto">
+                Start
+            </button>
+            <button id="reset-button" disabled
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg text-lg shadow-md transition-colors duration-300 disabled:bg-gray-500 disabled:cursor-not-allowed w-full md:w-auto">
+                Reset
+            </button>
+        </div>
+
+        <div class="flex items-center justify-center space-x-3 text-lg mb-6">
+            <label for="halftime-toggle">Halftime Notification:</label>
+            <input type="checkbox" id="halftime-toggle" class="form-checkbox h-5 w-5 text-blue-600 rounded-md">
+        </div>
+
+        <div class="mb-6 p-4 bg-black bg-opacity-20 rounded-lg shadow-inner">
+            <h2 class="text-xl font-bold mb-2">Daily Insight</h2>
+            <p id="shunryu-quote" class="italic text-lg leading-relaxed">
+                </p>
+            <p class="text-sm mt-2">- Shunryu Suzuki</p>
+        </div>
+    </div>
+
+    <audio id="gong-start" src="sounds/gong-start.mp3" preload="auto"></audio>
+    <audio id="gong-halftime" src="sounds/gong-halftime.mp3" preload="auto"></audio>
+    <audio id="gong-end" src="sounds/gong-end.mp3" preload="auto"></audio>
+
+    <div id="hint-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <button id="modal-close-button" class="modal-close-button">&times;</button>
+            <h2 class="text-2xl font-bold mb-4">Zazen & Mindfulness Hint</h2>
+            <div id="hint-loader" class="loader hidden"></div>
+            <p id="hint-text" class="text-lg leading-relaxed"></p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get references to DOM elements
+            const meditationLengthInput = document.getElementById('meditation-length');
+            const minutesDisplay = document.getElementById('minutes');
+            const secondsDisplay = document.getElementById('seconds');
+            const startPauseButton = document.getElementById('start-pause-button');
+            const resetButton = document.getElementById('reset-button');
+            const halftimeToggle = document.getElementById('halftime-toggle');
+            const geminiHintButton = document.getElementById('gemini-hint-button');
+            const presetButtons = document.querySelectorAll('.preset-button');
+            const shunryuQuoteDisplay = document.getElementById('shunryu-quote'); // New element for quote
+
+            // Audio elements for gong sounds
+            const gongStart = document.getElementById('gong-start');
+            const gongHalftime = document.getElementById('gong-halftime');
+            const gongEnd = document.getElementById('gong-end');
+
+            // Modal elements
+            const hintModalOverlay = document.getElementById('hint-modal-overlay');
+            const hintText = document.getElementById('hint-text');
+            const modalCloseButton = document.getElementById('modal-close-button');
+            const hintLoader = document.getElementById('hint-loader'); // New loader element
+
+            // Timer state variables
+            let totalSeconds = 0;
+            let secondsRemaining = 0;
+            let timerInterval;
+            let isRunning = false;
+            let isPaused = false;
+            let halftimeReached = false;
+
+            // Array of Shunryu Suzuki quotes
+            const shunryuSuzukiQuotes = [
+                "In the beginner's mind there are many possibilities, but in the expert's mind there are few.",
+                "Each moment is all being. The meaning of life is there in each moment.",
+                "Nothing we see or hear is perfect. But at the same time, nothing is imperfect.",
+                "To live in the present moment is a miracle. The miracle is not to walk on water. The miracle is to walk on the green earth, and to be aware of the blue sky, and to feel the warmth of the sun.",
+                "When you do something, you should burn yourself completely, like a good bonfire, leaving no trace of yourself.",
+                "The most important thing is to be yourself, and to be yourself, you have to make friends with yourself.",
+                "Strictly speaking, there are no enlightened people, there is only enlightened activity.",
+                "If your mind is empty, it is always ready for anything; it is open to everything. In the beginner's mind there are many possibilities; in the expert's mind there are few.",
+                "If you are always trying to be something else, you will never be yourself.",
+                "Wherever you are, you are always in the middle of nature."
+            ];
+
+            /**
+             * Initializes or resets the timer state and display.
+             * Sets initial values, updates the display, and manages button states.
+             */
+            function initializeTimer() {
+                const minutes = parseInt(meditationLengthInput.value, 10);
+                totalSeconds = minutes * 60;
+                secondsRemaining = totalSeconds;
+                updateDisplay(); // Update the timer display
+                startPauseButton.textContent = 'Start'; // Set button text to Start
+                startPauseButton.disabled = false; // Enable start/pause button
+                resetButton.disabled = true;  // Disable reset button
+                meditationLengthInput.disabled = false; // Enable length input
+                isRunning = false;            // Set timer as not running
+                isPaused = false;             // Not paused
+                halftimeReached = false;      // Reset halftime flag
+                clearInterval(timerInterval); // Clear any existing timer interval
+            }
+
+            /**
+             * Updates the timer display with current minutes and seconds.
+             * Formats numbers to always show two digits (e.g., 05 instead of 5).
+             */
+            function updateDisplay() {
+                const minutes = Math.floor(secondsRemaining / 60);
+                const seconds = secondsRemaining % 60;
+                minutesDisplay.textContent = String(minutes).padStart(2, '0');
+                secondsDisplay.textContent = String(seconds).padStart(2, '0');
+            }
+
+            /**
+             * Plays a given audio element, handling potential errors.
+             * @param {HTMLAudioElement} audioEl - The audio element to play.
+             */
+            function playSound(audioEl) {
+                if (audioEl && audioEl.src && audioEl.src !== window.location.href) {
+                    audioEl.currentTime = 0; // Rewind to start
+                    audioEl.play().catch(e => console.error("Error playing sound:", e));
+                } else {
+                    console.warn("Attempted to play sound with empty or invalid src:", audioEl ? audioEl.id : 'unknown');
+                }
+            }
+
+            /**
+             * Toggles the meditation timer between start/resume and pause.
+             */
+            function toggleStartPause() {
+                if (isRunning && !isPaused) { // If currently running, pause it
+                    clearInterval(timerInterval);
+                    isPaused = true;
+                    startPauseButton.textContent = 'Resume';
+                    startPauseButton.classList.remove('bg-green-600', 'hover:bg-green-700');
+                    startPauseButton.classList.add('bg-orange-500', 'hover:bg-orange-600'); // Change color for pause state
+                    resetButton.disabled = false; // Enable reset when paused
+                } else { // If paused or not started, start/resume it
+                    isRunning = true;
+                    isPaused = false;
+                    startPauseButton.textContent = 'Pause';
+                    startPauseButton.classList.remove('bg-orange-500', 'hover:bg-orange-600');
+                    startPauseButton.classList.add('bg-green-600', 'hover:bg-green-700'); // Change color for running state
+                    resetButton.disabled = true; // Disable reset when running
+                    meditationLengthInput.disabled = true; // Disable length input during meditation
+
+                    // Only play start gong if it's the very beginning (not resuming from pause)
+                    if (secondsRemaining === totalSeconds && totalSeconds > 0) {
+                        playSound(gongStart);
+                    }
+
+                    timerInterval = setInterval(() => {
+                        secondsRemaining--;
+                        updateDisplay();
+
+                        // Halftime notification
+                        if (halftimeToggle.checked && !halftimeReached && secondsRemaining === Math.floor(totalSeconds / 2)) {
+                            playSound(gongHalftime);
+                            halftimeReached = true;
+                        }
+
+                        if (secondsRemaining <= 0) {
+                            endTimer();
+                        }
+                    }, 1000);
+                }
+            }
+
+            /**
+             * Ends the meditation timer.
+             * Clears the interval, plays the end gong, and resets button/input states.
+             */
+            function endTimer() {
+                clearInterval(timerInterval);
+                isRunning = false;
+                isPaused = false; // Ensure not in paused state
+                meditationLengthInput.disabled = false;
+                startPauseButton.textContent = 'Start'; // Reset button text
+                startPauseButton.classList.remove('bg-orange-500', 'hover:bg-orange-600');
+                startPauseButton.classList.add('bg-green-600', 'hover:bg-green-700'); // Reset color to green
+                startPauseButton.disabled = false;
+                resetButton.disabled = false; // Enable reset after meditation ends
+                halftimeReached = false;
+
+                playSound(gongEnd); // Play the end gong sound
+
+                if (secondsRemaining < 0) {
+                    secondsRemaining = 0;
+                    updateDisplay();
+                }
+            }
+
+            /**
+             * Resets the timer to its initial state based on the input length.
+             */
+            function resetTimer() {
+                clearInterval(timerInterval);
+                initializeTimer(); // Re-initialize to reset all states
+                meditationLengthInput.disabled = false;
+            }
+
+            /**
+             * Displays a random Shunryu Suzuki quote.
+             */
+            function displayRandomShunryuQuote() {
+                const randomIndex = Math.floor(Math.random() * shunryuSuzukiQuotes.length);
+                shunryuQuoteDisplay.textContent = shunryuSuzukiQuotes[randomIndex];
+            }
+
+            // --- Event Listeners ---
+            startPauseButton.addEventListener('click', toggleStartPause); // Use the new toggle function
+            resetButton.addEventListener('click', resetTimer);
+            meditationLengthInput.addEventListener('input', initializeTimer);
+
+            // Add event listeners for preset buttons
+            presetButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const minutes = button.dataset.minutes;
+                    meditationLengthInput.value = minutes;
+                    initializeTimer();
+                });
+            });
+
+            // Initialize timer and display initial quote on page load
+            initializeTimer();
+            displayRandomShunryuQuote(); // Display a quote when the app loads
+
+            // --- Gemini AI Hint Functionality ---
+            /**
+             * Fetches a Zazen/mindfulness hint from the Gemini API.
+             */
+            async function getGeminiHint() {
+                hintText.textContent = ''; // Clear previous hint
+                hintLoader.classList.remove('hidden'); // Show loader
+
+                const prompt = "Provide a short, concise, and helpful tip for Zazen meditation or general mindfulness practice. The tip should be encouraging and easy to understand for beginners. Do not include any greetings or conversational text, just the tip itself. For example: 'Focus on the sensation of your breath at your nostrils.'";
+
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                const apiKey = ""; // Canvas will automatically provide the API key at runtime
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`API error: ${response.status} - ${errorData.error.message || response.statusText}`);
+                    }
+
+                    const result = await response.json();
+
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        hintText.textContent = text; // Display the generated hint
+                    } else {
+                        hintText.textContent = "Could not retrieve a hint. Please try again.";
+                        console.error("Unexpected API response structure:", result);
+                    }
+                } catch (error) {
+                    hintText.textContent = `Failed to get hint: ${error.message}. Please check your connection or try again.`;
+                    console.error("Error fetching Gemini hint:", error);
+                } finally {
+                    hintLoader.classList.add('hidden'); // Hide loader
+                }
+            }
+
+            /**
+             * Displays a random Zazen/mindfulness hint in a custom modal.
+             */
+            geminiHintButton.addEventListener('click', () => {
+                hintModalOverlay.classList.add('show'); // Show the modal
+                getGeminiHint(); // Fetch and display a new hint
+            });
+
+            /**
+             * Closes the hint modal.
+             */
+            modalCloseButton.addEventListener('click', () => {
+                hintModalOverlay.classList.remove('show'); // Hide the modal
+            });
+
+            // Close modal if clicked outside content
+            hintModalOverlay.addEventListener('click', (event) => {
+                if (event.target === hintModalOverlay) {
+                    hintModalOverlay.classList.remove('show');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
