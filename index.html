@@ -4,9 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zazen Meditation Timer</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="alternate icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom CSS for the sunset gradient background and Inter font */
+        /* Custom CSS for themes and Inter font */
         body {
             font-family: 'Inter', sans-serif;
             margin: 0;
@@ -15,8 +19,30 @@
             align-items: center;
             min-height: 100vh;
             color: white;
-            /* Sunset Gradient - Example colors, feel free to adjust */
-            background: linear-gradient(to top right, #ff7e5f, #feb47b, #ffda7b);
+            transition: background 0.5s ease;
+        }
+
+        /* Theme gradients */
+        body.theme-sunset {
+            background: linear-gradient(135deg, #ff6b6b, #ff8e53, #ffd93d);
+            background-size: 400% 400%;
+            animation: gradientAnimation 15s ease infinite;
+        }
+
+        body.theme-ocean {
+            background: linear-gradient(135deg, #1a2980, #26d0ce, #2a5298);
+            background-size: 400% 400%;
+            animation: gradientAnimation 15s ease infinite;
+        }
+
+        body.theme-forest {
+            background: linear-gradient(135deg, #134E5E, #71B280, #2E7D32);
+            background-size: 400% 400%;
+            animation: gradientAnimation 15s ease infinite;
+        }
+
+        body.theme-moonlight {
+            background: linear-gradient(135deg, #2C3E50, #4A148C, #1A237E);
             background-size: 400% 400%;
             animation: gradientAnimation 15s ease infinite;
         }
@@ -25,6 +51,148 @@
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
+        }
+
+        /* Theme switcher button */
+        .theme-switcher {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            width: 3rem;
+            height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .theme-switcher:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .theme-switcher svg {
+            width: 1.5rem;
+            height: 1.5rem;
+            fill: white;
+        }
+
+        /* Theme-specific icons */
+        .theme-sunset .theme-switcher svg,
+        .theme-ocean .theme-switcher svg,
+        .theme-forest .theme-switcher svg,
+        .theme-moonlight .theme-switcher svg {
+            /* Remove content property, handled by JS now */
+        }
+
+        /* Updated button styles */
+        .preset-button {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .preset-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .preset-button.active {
+            background: rgba(255, 255, 255, 0.35);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+            font-weight: 600;
+        }
+
+        /* Timer input styling */
+        #meditation-length {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 1.5rem;
+            padding: 0.75rem;
+            width: 6rem;
+            text-align: center;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        #meditation-length:focus {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.4);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+        }
+
+        /* Timer display styling */
+        .timer-display {
+            font-size: 5rem;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            letter-spacing: 0.1em;
+        }
+
+        /* Main control buttons */
+        .control-button {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+            min-width: 100px;
+        }
+
+        .control-button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-button:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Start/Pause button specific states */
+        #start-pause-button.running {
+            background: rgba(34, 197, 94, 0.3);
+            border-color: rgba(34, 197, 94, 0.4);
+        }
+
+        #start-pause-button.running:hover {
+            background: rgba(34, 197, 94, 0.4);
+            border-color: rgba(34, 197, 94, 0.5);
+        }
+
+        #start-pause-button.paused {
+            background: rgba(234, 179, 8, 0.3);
+            border-color: rgba(234, 179, 8, 0.4);
+        }
+
+        #start-pause-button.paused:hover {
+            background: rgba(234, 179, 8, 0.4);
+            border-color: rgba(234, 179, 8, 0.5);
         }
 
         /* Modal specific styles */
@@ -99,9 +267,14 @@
         }
     </style>
 </head>
-<body class="bg-gradient-to-tr from-pink-500 via-orange-500 to-yellow-500 min-h-screen flex items-center justify-center text-white font-inter">
+<body class="theme-sunset">
+    <button id="theme-switcher" class="theme-switcher" title="Change Theme">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z"/>
+        </svg>
+    </button>
 
-    <div class="relative bg-black bg-opacity-30 p-8 md:p-12 rounded-2xl shadow-xl text-center w-11/12 max-w-md">
+    <div class="relative bg-black bg-opacity-30 p-8 md:p-12 rounded-2xl shadow-xl text-center w-11/12 max-w-md backdrop-blur-sm">
         <button id="gemini-hint-button"
                 class="absolute top-4 right-4 bg-white bg-opacity-20 hover:bg-opacity-40 text-white font-bold rounded-full w-10 h-10 flex items-center justify-center text-xl shadow-md transition-colors duration-300"
                 title="Get Zazen & Mindfulness Hints">
@@ -112,28 +285,26 @@
 
         <div class="mb-6">
             <label for="meditation-length" class="block text-lg mb-2">Meditation Length (minutes):</label>
-            <input type="number" id="meditation-length" value="25" min="1"
-                   class="w-24 p-3 rounded-lg text-center text-gray-800 text-2xl font-semibold bg-white bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200">
+            <input type="number" id="meditation-length" value="10" min="1" max="120"
+                   class="w-24 p-3 rounded-lg text-center text-2xl font-semibold focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 transition-all duration-200">
         </div>
 
         <div class="flex flex-wrap justify-center gap-2 mb-6">
-            <button class="preset-button bg-gray-700 hover:bg-gray-600 text-white text-sm py-2 px-4 rounded-lg transition-colors duration-200" data-minutes="10">10 min</button>
-            <button class="preset-button bg-gray-700 hover:bg-gray-600 text-white text-sm py-2 px-4 rounded-lg transition-colors duration-200" data-minutes="20">20 min</button>
-            <button class="preset-button bg-gray-700 hover:bg-gray-600 text-white text-sm py-2 px-4 rounded-lg transition-colors duration-200" data-minutes="30">30 min</button>
-            <button class="preset-button bg-gray-700 hover:bg-gray-600 text-white text-sm py-2 px-4 rounded-lg transition-colors duration-200" data-minutes="60">60 min</button>
+            <button class="preset-button text-white text-sm py-2 px-4 rounded-lg" data-minutes="10">10 min</button>
+            <button class="preset-button text-white text-sm py-2 px-4 rounded-lg" data-minutes="20">20 min</button>
+            <button class="preset-button text-white text-sm py-2 px-4 rounded-lg" data-minutes="30">30 min</button>
+            <button class="preset-button text-white text-sm py-2 px-4 rounded-lg" data-minutes="60">60 min</button>
         </div>
 
-        <div class="text-6xl md:text-7xl font-extrabold mb-8 text-shadow-lg">
+        <div class="timer-display mb-8">
             <span id="minutes">00</span>:<span id="seconds">00</span>
         </div>
 
         <div class="flex flex-col md:flex-row justify-center items-center space-y-4 md:space-y-0 md:space-x-4 mb-6">
-            <button id="start-pause-button"
-                    class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg text-lg shadow-md transition-colors duration-300 disabled:bg-gray-500 disabled:cursor-not-allowed w-full md:w-auto">
+            <button id="start-pause-button" class="control-button w-full md:w-auto">
                 Start
             </button>
-            <button id="reset-button" disabled
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg text-lg shadow-md transition-colors duration-300 disabled:bg-gray-500 disabled:cursor-not-allowed w-full md:w-auto">
+            <button id="reset-button" class="control-button w-full md:w-auto" disabled>
                 Reset
             </button>
         </div>
@@ -141,6 +312,13 @@
         <div class="flex items-center justify-center space-x-3 text-lg mb-6">
             <label for="halftime-toggle">Halftime Notification:</label>
             <input type="checkbox" id="halftime-toggle" class="form-checkbox h-5 w-5 text-blue-600 rounded-md">
+        </div>
+
+        <div class="flex items-center justify-center space-x-3 text-lg mb-6">
+            <label for="volume-slider" class="whitespace-nowrap">Volume:</label>
+            <input type="range" id="volume-slider" min="0" max="100" value="50"
+                   class="w-32 h-2 bg-white bg-opacity-20 rounded-lg appearance-none cursor-pointer accent-white">
+            <span id="volume-value" class="text-sm">50%</span>
         </div>
 
         <div class="mb-6 p-4 bg-black bg-opacity-20 rounded-lg shadow-inner">
@@ -196,19 +374,47 @@
             let isPaused = false;
             let halftimeReached = false;
 
-            // Array of Shunryu Suzuki quotes
-            const shunryuSuzukiQuotes = [
-                "In the beginner's mind there are many possibilities, but in the expert's mind there are few.",
-                "Each moment is all being. The meaning of life is there in each moment.",
-                "Nothing we see or hear is perfect. But at the same time, nothing is imperfect.",
-                "To live in the present moment is a miracle. The miracle is not to walk on water. The miracle is to walk on the green earth, and to be aware of the blue sky, and to feel the warmth of the sun.",
-                "When you do something, you should burn yourself completely, like a good bonfire, leaving no trace of yourself.",
-                "The most important thing is to be yourself, and to be yourself, you have to make friends with yourself.",
-                "Strictly speaking, there are no enlightened people, there is only enlightened activity.",
-                "If your mind is empty, it is always ready for anything; it is open to everything. In the beginner's mind there are many possibilities; in the expert's mind there are few.",
-                "If you are always trying to be something else, you will never be yourself.",
-                "Wherever you are, you are always in the middle of nature."
+            // Array of meditation tips
+            const meditationTips = [
+                "Focus on the sensation of your breath at your nostrils. Notice the temperature difference between inhale and exhale.",
+                "When your mind wanders, gently acknowledge the thought and return to your breath without judgment.",
+                "Maintain a straight but relaxed posture. Imagine a string pulling you up from the crown of your head.",
+                "Let your hands rest naturally in your lap, creating a gentle circle with your thumbs touching.",
+                "Keep your eyes slightly open, gazing softly at a point on the floor about three feet in front of you.",
+                "Notice the sounds around you without labeling them as good or bad. Let them come and go.",
+                "Feel the weight of your body on the cushion or chair. Ground yourself in the present moment.",
+                "When counting breaths, start over at one if you lose track. This is part of the practice.",
+                "Allow your jaw to relax and your tongue to rest gently against the roof of your mouth.",
+                "If you feel sleepy, straighten your posture and take a few deeper breaths.",
+                "Notice the space between thoughts. This space is always available to you.",
+                "Let your breath find its natural rhythm. Don't try to control it.",
+                "When emotions arise, observe them with curiosity, like clouds passing in the sky.",
+                "Feel the connection between your body and the earth beneath you.",
+                "Remember that each moment of awareness is a moment of meditation."
             ];
+
+            // Array of Shunryu Suzuki quotes
+            const shunryuQuotes = [
+                "In the beginner's mind there are many possibilities, but in the expert's mind there are few.",
+                "When you do something, you should burn yourself up completely, like a good bonfire, leaving no trace of yourself.",
+                "The most important point is to accept yourself and stand on your two feet.",
+                "When you try to stop your thinking, it means you are bothered by it. Do not be bothered by anything.",
+                "If you want to study something, you should be completely involved in it.",
+                "The most important thing is to remember the most important thing.",
+                "When you do something, you should do it with your whole body and mind; you should be concentrated on what you do.",
+                "The best way to control people is to encourage them to be mischievous.",
+                "To give your sheep or cow a large, spacious meadow is the way to control him.",
+                "If you want to obtain pure calmness in your zazen, you should not be bothered by the various images you find in your mind.",
+                "The most difficult thing is always to keep your beginner's mind.",
+                "When you are practicing zazen, do not try to stop your thinking. Let it stop by itself.",
+                "If something comes into your mind, let it come in, and let it go out.",
+                "The true purpose is to see things as they are, to observe things as they are, and to let everything go as it goes.",
+                "When you do something, you should do it with your whole body and mind; you should be concentrated on what you do."
+            ];
+
+            const volumeSlider = document.getElementById('volume-slider');
+            const volumeValue = document.getElementById('volume-value');
+            const audioElements = [gongStart, gongHalftime, gongEnd];
 
             /**
              * Initializes or resets the timer state and display.
@@ -261,17 +467,17 @@
                     clearInterval(timerInterval);
                     isPaused = true;
                     startPauseButton.textContent = 'Resume';
-                    startPauseButton.classList.remove('bg-green-600', 'hover:bg-green-700');
-                    startPauseButton.classList.add('bg-orange-500', 'hover:bg-orange-600'); // Change color for pause state
-                    resetButton.disabled = false; // Enable reset when paused
+                    startPauseButton.classList.remove('running');
+                    startPauseButton.classList.add('paused');
+                    resetButton.disabled = false;
                 } else { // If paused or not started, start/resume it
                     isRunning = true;
                     isPaused = false;
                     startPauseButton.textContent = 'Pause';
-                    startPauseButton.classList.remove('bg-orange-500', 'hover:bg-orange-600');
-                    startPauseButton.classList.add('bg-green-600', 'hover:bg-green-700'); // Change color for running state
-                    resetButton.disabled = true; // Disable reset when running
-                    meditationLengthInput.disabled = true; // Disable length input during meditation
+                    startPauseButton.classList.remove('paused');
+                    startPauseButton.classList.add('running');
+                    resetButton.disabled = true;
+                    meditationLengthInput.disabled = true;
 
                     // Only play start gong if it's the very beginning (not resuming from pause)
                     if (secondsRemaining === totalSeconds && totalSeconds > 0) {
@@ -302,16 +508,15 @@
             function endTimer() {
                 clearInterval(timerInterval);
                 isRunning = false;
-                isPaused = false; // Ensure not in paused state
+                isPaused = false;
                 meditationLengthInput.disabled = false;
-                startPauseButton.textContent = 'Start'; // Reset button text
-                startPauseButton.classList.remove('bg-orange-500', 'hover:bg-orange-600');
-                startPauseButton.classList.add('bg-green-600', 'hover:bg-green-700'); // Reset color to green
+                startPauseButton.textContent = 'Start';
+                startPauseButton.classList.remove('running', 'paused');
                 startPauseButton.disabled = false;
-                resetButton.disabled = false; // Enable reset after meditation ends
+                resetButton.disabled = false;
                 halftimeReached = false;
 
-                playSound(gongEnd); // Play the end gong sound
+                playSound(gongEnd);
 
                 if (secondsRemaining < 0) {
                     secondsRemaining = 0;
@@ -329,11 +534,20 @@
             }
 
             /**
-             * Displays a random Shunryu Suzuki quote.
+             * Displays a random meditation tip.
              */
-            function displayRandomShunryuQuote() {
-                const randomIndex = Math.floor(Math.random() * shunryuSuzukiQuotes.length);
-                shunryuQuoteDisplay.textContent = shunryuSuzukiQuotes[randomIndex];
+            function getMeditationTip() {
+                const randomIndex = Math.floor(Math.random() * meditationTips.length);
+                return meditationTips[randomIndex];
+            }
+
+            /**
+             * Gets a random quote from Shunryu Suzuki.
+             * @returns {string} A random quote
+             */
+            function getRandomQuote() {
+                const randomIndex = Math.floor(Math.random() * shunryuQuotes.length);
+                return shunryuQuotes[randomIndex];
             }
 
             // --- Event Listeners ---
@@ -352,61 +566,17 @@
 
             // Initialize timer and display initial quote on page load
             initializeTimer();
-            displayRandomShunryuQuote(); // Display a quote when the app loads
+            shunryuQuoteDisplay.textContent = getRandomQuote();
 
-            // --- Gemini AI Hint Functionality ---
-            /**
-             * Fetches a Zazen/mindfulness hint from the Gemini API.
-             */
-            async function getGeminiHint() {
-                hintText.textContent = ''; // Clear previous hint
-                hintLoader.classList.remove('hidden'); // Show loader
+            // Update quote every 5 minutes
+            setInterval(() => {
+                shunryuQuoteDisplay.textContent = getRandomQuote();
+            }, 5 * 60 * 1000);
 
-                const prompt = "Provide a short, concise, and helpful tip for Zazen meditation or general mindfulness practice. The tip should be encouraging and easy to understand for beginners. Do not include any greetings or conversational text, just the tip itself. For example: 'Focus on the sensation of your breath at your nostrils.'";
-
-                let chatHistory = [];
-                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-                const payload = { contents: chatHistory };
-                const apiKey = ""; // Canvas will automatically provide the API key at runtime
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-                try {
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(`API error: ${response.status} - ${errorData.error.message || response.statusText}`);
-                    }
-
-                    const result = await response.json();
-
-                    if (result.candidates && result.candidates.length > 0 &&
-                        result.candidates[0].content && result.candidates[0].content.parts &&
-                        result.candidates[0].content.parts.length > 0) {
-                        const text = result.candidates[0].content.parts[0].text;
-                        hintText.textContent = text; // Display the generated hint
-                    } else {
-                        hintText.textContent = "Could not retrieve a hint. Please try again.";
-                        console.error("Unexpected API response structure:", result);
-                    }
-                } catch (error) {
-                    hintText.textContent = `Failed to get hint: ${error.message}. Please check your connection or try again.`;
-                    console.error("Error fetching Gemini hint:", error);
-                } finally {
-                    hintLoader.classList.add('hidden'); // Hide loader
-                }
-            }
-
-            /**
-             * Displays a random Zazen/mindfulness hint in a custom modal.
-             */
+            // --- Meditation Tip Button Functionality ---
             geminiHintButton.addEventListener('click', () => {
                 hintModalOverlay.classList.add('show'); // Show the modal
-                getGeminiHint(); // Fetch and display a new hint
+                hintText.textContent = getMeditationTip(); // Display a random tip
             });
 
             /**
@@ -422,6 +592,82 @@
                     hintModalOverlay.classList.remove('show');
                 }
             });
+
+            // Theme switching functionality
+            const themeSwitcher = document.getElementById('theme-switcher');
+            const themeSwitcherSvg = themeSwitcher.querySelector('svg');
+            const themes = ['theme-sunset', 'theme-ocean', 'theme-forest', 'theme-moonlight'];
+            let currentThemeIndex = 0;
+
+            // SVG icons for each theme
+            const themeIcons = [
+                // Sunset (Sun)
+                `<svg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 24 24'><circle cx='12' cy='12' r='5'/><g stroke='white' stroke-width='2'><line x1='12' y1='1' x2='12' y2='3'/><line x1='12' y1='21' x2='12' y2='23'/><line x1='4.22' y1='4.22' x2='5.64' y2='5.64'/><line x1='18.36' y1='18.36' x2='19.78' y2='19.78'/><line x1='1' y1='12' x2='3' y2='12'/><line x1='21' y1='12' x2='23' y2='12'/><line x1='4.22' y1='19.78' x2='5.64' y2='18.36'/><line x1='18.36' y1='5.64' x2='19.78' y2='4.22'/></g></svg>`,
+                // Ocean (Wave)
+                `<svg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='white' stroke-width='2' viewBox='0 0 24 24'><path d='M2 17c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2'/></svg>`,
+                // Forest (Leaf)
+                `<svg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='white' stroke-width='2' viewBox='0 0 24 24'><path d='M12 2C7 7 2 12 12 22c10-10 5-15 0-20z'/></svg>`,
+                // Moonlight (Moon)
+                `<svg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 24 24'><path d='M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z'/></svg>`
+            ];
+
+            function updateThemeIcon() {
+                themeSwitcher.innerHTML = themeIcons[currentThemeIndex];
+            }
+
+            function switchTheme() {
+                document.body.classList.remove(themes[currentThemeIndex]);
+                currentThemeIndex = (currentThemeIndex + 1) % themes.length;
+                document.body.classList.add(themes[currentThemeIndex]);
+                updateThemeIcon();
+            }
+
+            themeSwitcher.addEventListener('click', switchTheme);
+            // Set initial icon
+            updateThemeIcon();
+
+            // Update preset button active state
+            function updatePresetButtons() {
+                const currentMinutes = parseInt(meditationLengthInput.value);
+                presetButtons.forEach(button => {
+                    const buttonMinutes = parseInt(button.dataset.minutes);
+                    button.classList.toggle('active', buttonMinutes === currentMinutes);
+                });
+            }
+
+            // Add to existing preset button click handlers
+            presetButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const minutes = button.dataset.minutes;
+                    meditationLengthInput.value = minutes;
+                    initializeTimer();
+                    updatePresetButtons();
+                });
+            });
+
+            // Update preset buttons when input changes
+            meditationLengthInput.addEventListener('input', () => {
+                initializeTimer();
+                updatePresetButtons();
+            });
+
+            // Initialize preset buttons
+            updatePresetButtons();
+
+            // Volume control functionality
+            function updateVolume() {
+                const volume = volumeSlider.value / 100;
+                audioElements.forEach(audio => {
+                    audio.volume = volume;
+                });
+                volumeValue.textContent = `${volumeSlider.value}%`;
+            }
+
+            // Initialize volume
+            updateVolume();
+
+            // Add volume slider event listener
+            volumeSlider.addEventListener('input', updateVolume);
         });
     </script>
 </body>
